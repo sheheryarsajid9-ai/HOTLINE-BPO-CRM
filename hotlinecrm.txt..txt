@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HOTLINE BPO — Cloud Operations & Lead CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "system-ui", "-apple-system", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2563eb;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-600 selection:text-white">
+  <!-- Live Toast Notification -->
+  <div
+    id="toast-banner"
+    class="fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-2xl bg-slate-900 text-white px-4 py-3 text-xs sm:text-sm font-medium shadow-xl border border-slate-700 flex items-center gap-2.5"
+    role="status"
+    aria-live="polite"
+  >
+    <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 shrink-0"></i>
+    <span id="toast-text">Saved.</span>
+  </div>
+
+  <!-- Custom Confirmation Modal (No browser confirm()) -->
+  <div
+    id="confirm-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 id="confirm-title" class="text-base font-bold text-slate-900">Confirm Action</h3>
+          <p id="confirm-message" class="text-xs sm:text-sm text-slate-600 mt-1">Are you sure you want to proceed?</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2.5 pt-2">
+        <button
+          type="button"
+          id="confirm-cancel-btn"
+          class="px-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="confirm-ok-btn"
+          class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-semibold transition cursor-pointer"
+        >
+          Confirm Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lead Audit & Override Modal -->
+  <div
+    id="lead-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-3xl border border-slate-200 max-w-3xl w-full shadow-2xl overflow-hidden my-auto">
+      <div class="px-6 py-4 bg-gradient-to-r from-blue-700 to-blue-900 text-white flex items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modal-lead-id" class="text-xs font-mono bg-white/15 px-2 py-0.5 rounded-md font-semibold">HB-1001</span>
+            <span id="modal-lead-status-badge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-white text-blue-900">Pending</span>
+          </div>
+          <h3 id="modal-lead-title" class="text-base sm:text-lg font-bold mt-1">Lead Record Details</h3>
+        </div>
+        <button
+          type="button"
+          id="close-lead-modal-btn"
+          class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+          aria-label="Close modal"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="lead-edit-form" class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+        <input type="hidden" id="edit-lead-doc-id" />
+
+        <!-- Prospect Details Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">First Name</label>
+            <input type="text" id="edit-first-name" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Last Name</label>
+            <input type="text" id="edit-last-name" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Date of Birth</label>
+            <input type="date" id="edit-dob" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Street Address</label>
+            <input type="text" id="edit-address" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">City</label>
+            <input type="text" id="edit-city" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">State</label>
+              <input type="text" id="edit-state" maxlength="2" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm uppercase bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Zip</label>
+              <input type="text" id="edit-zip" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+            <input type="tel" id="edit-phone" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Number of Vehicles</label>
+            <input type="number" min="1" max="20" id="edit-vehicles" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Make and Models</label>
+            <input type="text" id="edit-make-models" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Housing Status</label>
+            <select id="edit-housing" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none">
+              <option value="Homeowner">Homeowner</option>
+              <option value="Renter">Renter</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Current Insurance</label>
+            <input type="text" id="edit-insurance" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Agent Name</label>
+            <input type="text" id="edit-agent-name" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Routing, Status & Comment Override -->
+        <div class="pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Target Buyer</label>
+            <select id="edit-buyer-id" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Lead Status (Admin Override)</label>
+            <select id="edit-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none">
+              <option value="Pending">Pending</option>
+              <option value="Quoted">Quoted</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-slate-600">Agent Comment / Admin Override Reasoning</label>
+            <span id="edit-override-badge" class="hidden text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">Admin Overridden</span>
+          </div>
+          <textarea
+            id="edit-comment"
+            rows="3"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none"
+          ></textarea>
+          <p id="edit-audit-note" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+          <button
+            type="button"
+            id="modal-delete-lead-btn"
+            class="admin-only-el px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs sm:text-sm font-semibold inline-flex items-center gap-2 transition cursor-pointer"
+          >
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Delete Lead</span>
+          </button>
+
+          <div class="flex items-center gap-2.5 ml-auto">
+            <button
+              type="button"
+              id="cancel-lead-modal-btn"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            >
+              Close
+            </button>
+            <button
+              type="submit"
+              id="save-lead-modal-btn"
+              class="admin-only-el px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition cursor-pointer"
+            >
+              Save Changes &amp; Sync
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LOGIN GATE (No Credentials Displayed on UI) -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-950 via-blue-900 to-slate-900 p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-blue-100 overflow-hidden">
+      <div class="px-7 pt-8 pb-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-xl font-extrabold tracking-tight border border-white/20">
+            HB
+          </div>
+          <div>
+            <h1 class="text-xl font-extrabold tracking-tight">HOTLINE BPO</h1>
+            <p class="text-xs text-blue-100">Cloud Lead Operations &amp; Routing Portal</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="login-form" class="p-7 space-y-5" novalidate>
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold text-slate-600">Sign in to workspace</span>
+          <span id="cloud-boot-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
+            <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            <span>Connecting Cloud...</span>
+          </span>
+        </div>
+
+        <div id="login-error-box" class="hidden rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 text-xs font-semibold">
+          Invalid email or password. Please verify your access credentials.
+        </div>
+
+        <div>
+          <label for="login-email" class="block text-xs font-semibold text-slate-700 mb-1.5">Email Address</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope text-slate-400 text-sm absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              type="email"
+              id="login-email"
+              required
+              autocomplete="username"
+              placeholder="Enter your work email"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="login-password" class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock text-slate-400 text-sm absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              type="password"
+              id="login-password"
+              required
+              autocomplete="current-password"
+              placeholder="Enter your password"
+              class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-600 focus:outline-none text-sm"
+            />
+            <button
+              type="button"
+              id="toggle-password-visibility"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1 cursor-pointer"
+              aria-label="Toggle password visibility"
+            >
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          id="login-submit-btn"
+          class="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-600/20 transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>Sign In to CRM</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN CRM WORKSPACE -->
+  <div id="crm-app" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-slate-950/50 hidden lg:hidden"></div>
+
+    <!-- Left Sidebar -->
+    <aside
+      id="crm-sidebar"
+      class="fixed lg:sticky top-0 left-0 z-40 h-screen w-72 bg-gradient-to-b from-blue-950 via-blue-900 to-blue-950 text-white flex flex-col justify-between transition-transform duration-200 -translate-x-full lg:translate-x-0 shrink-0 shadow-xl"
+    >
+      <div class="p-5 space-y-6 overflow-y-auto">
+        <!-- Brand Header -->
+        <div class="flex items-center justify-between gap-2 pb-4 border-b border-blue-800/70">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/25 border border-blue-400/30 flex items-center justify-center font-extrabold text-base tracking-tight">
+              HB
+            </div>
+            <div>
+              <div class="font-extrabold text-base tracking-tight leading-none">HOTLINE BPO</div>
+              <div class="text-[11px] text-blue-200 mt-1">Cloud Lead CRM</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="close-sidebar-btn"
+            class="lg:hidden p-2 rounded-lg text-blue-200 hover:bg-blue-800/60"
+            aria-label="Close navigation"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Primary 7 Navigation Tabs -->
+        <nav class="space-y-1" aria-label="CRM Sections">
+          <div class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-blue-300/80">
+            Lead Workflow
+          </div>
+
+          <button
+            type="button"
+            data-tab="create-lead"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 text-white shadow-sm transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-plus-circle w-4 text-center"></i>
+              <span>1- Create Lead</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="dashboard"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-chart-pie w-4 text-center"></i>
+              <span>2- Dashboard</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="reports"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-file-contract w-4 text-center"></i>
+              <span>3- Reports</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="all-leads"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-layer-group w-4 text-center"></i>
+              <span>4- All Leads</span>
+            </span>
+            <span id="count-all" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-800 text-blue-100">0</span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="quoted-leads"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-circle-check w-4 text-center text-emerald-300"></i>
+              <span>5- Quoted Leads</span>
+            </span>
+            <span id="count-quoted" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200">0</span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="rejected-leads"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-circle-xmark w-4 text-center text-rose-300"></i>
+              <span>6- Rejected Leads</span>
+            </span>
+            <span id="count-rejected" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-200">0</span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="pending-leads"
+            class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+          >
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-clock w-4 text-center text-amber-300"></i>
+              <span>7- Pending Leads</span>
+            </span>
+            <span id="count-pending" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">0</span>
+          </button>
+
+          <!-- Admin-Only Controls -->
+          <div id="admin-sidebar-group" class="pt-4 mt-4 border-t border-blue-800/70 space-y-1">
+            <div class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-blue-300/80">
+              Admin Controls
+            </div>
+
+            <button
+              type="button"
+              data-tab="buyers-section"
+              class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+            >
+              <span class="flex items-center gap-2.5">
+                <i class="fa-solid fa-building-user w-4 text-center"></i>
+                <span>Buyers Section</span>
+              </span>
+              <span id="count-buyers" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-800 text-blue-100">0</span>
+            </button>
+
+            <button
+              type="button"
+              data-tab="users-settings"
+              class="nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer"
+            >
+              <span class="flex items-center gap-2.5">
+                <i class="fa-solid fa-user-shield w-4 text-center"></i>
+                <span>Users &amp; Settings</span>
+              </span>
+            </button>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Session Footer -->
+      <div class="p-4 border-t border-blue-800/70 bg-blue-950/80 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div id="session-user-email" class="text-xs font-semibold text-white truncate">user@hotlinebpo.com</div>
+            <div id="session-role-badge" class="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-600 text-white">
+              Admin
+            </div>
+          </div>
+          <button
+            type="button"
+            id="logout-btn"
+            class="px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-600 text-white text-xs font-semibold transition cursor-pointer"
+            title="Sign Out"
+          >
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Top Bar -->
+      <header class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            id="open-sidebar-btn"
+            class="lg:hidden p-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100"
+            aria-label="Open menu"
+          >
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="min-w-0">
+            <h2 id="topbar-title" class="text-base sm:text-lg font-extrabold text-slate-900 truncate">1- Create Lead</h2>
+            <p id="topbar-subtitle" class="text-[11px] sm:text-xs text-slate-500 truncate">Submit prospect details with real-time per-buyer duplicate verification</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+          <!-- Real-Time Sync Indicator -->
+          <div
+            id="sync-status-pill"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold"
+            title="Real-time multi-device cloud sync status"
+          >
+            <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="sync-label">Live Cloud Sync</span>
+          </div>
+
+          <button
+            type="button"
+            id="download-json-btn"
+            class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition cursor-pointer"
+          >
+            <i class="fa-solid fa-download mr-1"></i> Download JSON Backup
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+  <!-- Firebase Cloud Firestore Real-Time Engine + Resilient In-Memory Fallback -->
+  <script>
+    // =========================================================================
+    // STEP 1: PASTE YOUR FIREBASE CONFIG VALUES INSIDE THE QUOTES BELOW
+    // (Do NOT remove or rename `window.firebaseConfig` or any property keys)
+    // =========================================================================
+    window.firebaseConfig = {
+  apiKey: "AIzaSyDdEeaxH8wWEwsmXZoyjJ_L4gl3hOM6Mhw",
+  authDomain: "hotline-bpo-crm-d8844.firebaseapp.com",
+  projectId: "hotline-bpo-crm-d8844",
+  storageBucket: "hotline-bpo-crm-d8844.firebasestorage.app",
+  messagingSenderId: "550825895557",
+  appId: "1:550825895557:web:d33b73d070ff90902c2bec"
+};
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import {
+      getAuth,
+      signInAnonymously,
+      signInWithCustomToken
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      collection
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Default Seed Data (Used ONLY when cloud workspace is brand-new) ---
+    const DEFAULT_CREDENTIALS = {
+      adminEmail: "admin@hotlinebpo.com",
+      adminPassword: "Admin@123",
+      agentEmail: "agent@hotlinebpo.com",
+      agentPassword: "Agent@123"
+    };
+
+    const DEFAULT_BUYERS = [
+      { id: "buyer-1", name: "Buyer 1", dailyCap: 50, status: "Active", order: 1 },
+      { id: "buyer-2", name: "Buyer 2", dailyCap: 40, status: "Active", order: 2 },
+      { id: "buyer-3", name: "Buyer 3", dailyCap: 35, status: "Active", order: 3 }
+    ];
+
+    const DEFAULT_LEADS = [
+      {
+        id: "seed-lead-1",
+        leadCode: "HB-1001",
+        firstName: "Marcus",
+        lastName: "Vance",
+        dob: "1986-04-14",
+        address: "418 Oakridge Ave",
+        zip: "75034",
+        city: "Frisco",
+        state: "TX",
+        phone: "(214) 555-0192",
+        vehicles: 2,
+        makeModels: "2022 Honda Accord, 2020 Jeep Grand Cherokee",
+        housing: "Homeowner",
+        insurance: "Progressive",
+        agentName: "Sarah Jenkins",
+        buyerId: "buyer-1",
+        status: "Quoted",
+        comment: "Transferred warm to Buyer 1; bound 2-vehicle homeowner bundle.",
+        adminOverridden: false,
+        overrideNote: "",
+        createdAt: Date.now() - 7200000
+      },
+      {
+        id: "seed-lead-2",
+        leadCode: "HB-1002",
+        firstName: "Elena",
+        lastName: "Rostova",
+        dob: "1991-09-22",
+        address: "892 Pinecrest Blvd",
+        zip: "33139",
+        city: "Miami Beach",
+        state: "FL",
+        phone: "(305) 555-0148",
+        vehicles: 1,
+        makeModels: "2021 Mazda CX-5",
+        housing: "Renter",
+        insurance: "Geico",
+        agentName: "David Miller",
+        buyerId: "buyer-2",
+        status: "Rejected",
+        comment: "Marked rejected due to brief hold drop before verification.",
+        adminOverridden: false,
+        overrideNote: "",
+        createdAt: Date.now() - 3600000
+      },
+      {
+        id: "seed-lead-3",
+        leadCode: "HB-1003",
+        firstName: "Devon",
+        lastName: "Brooks",
+        dob: "1983-11-08",
+        address: "1205 Maplewood Dr",
+        zip: "30309",
+        city: "Atlanta",
+        state: "GA",
+        phone: "(404) 555-0176",
+        vehicles: 3,
+        makeModels: "2023 Ford Explorer, 2019 Toyota Tacoma, 2018 Honda Civic",
+        housing: "Homeowner",
+        insurance: "Allstate",
+        agentName: "Sarah Jenkins",
+        buyerId: "buyer-3",
+        status: "Pending",
+        comment: "Awaiting buyer portal disposition confirmation.",
+        adminOverridden: false,
+        overrideNote: "",
+        createdAt: Date.now() - 1800000
+      }
+    ];
+
+    // --- Application State ---
+    const state = {
+      cloudReady: false,
+      cloudMode: "connecting", // 'cloud' | 'disconnected'
+      cloudError: "",
+      db: null,
+      auth: null,
+      user: null,
+      appId: typeof __app_id !== "undefined" ? __app_id : "hotline-bpo-crm-v1",
+      sessionRole: null, // 'admin' | 'agent'
+      sessionEmail: null,
+      activeTab: "create-lead",
+      credentials: { ...DEFAULT_CREDENTIALS },
+      buyers: [],
+      leads: [],
+      pendingConfirmCallback: null
+    };
+
+    // --- Utility Helpers ---
+    function normalizePhone(raw) {
+      return String(raw || "").replace(/\D/g, "");
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function showToast(message, isError = false) {
+      const banner = document.getElementById("toast-banner");
+      const text = document.getElementById("toast-text");
+      const icon = document.getElementById("toast-icon");
+      if (!banner || !text) return;
+
+      text.textContent = message;
+      icon.className = isError
+        ? "fa-solid fa-circle-exclamation text-rose-400 shrink-0"
+        : "fa-solid fa-circle-check text-emerald-400 shrink-0";
+      banner.classList.remove("hidden");
+      clearTimeout(window.__crmToastTimer);
+      window.__crmToastTimer = setTimeout(() => {
+        banner.classList.add("hidden");
+      }, 3000);
+    }
+
+    function openConfirmModal(title, message, onConfirm) {
+      document.getElementById("confirm-title").textContent = title;
+      document.getElementById("confirm-message").textContent = message;
+      state.pendingConfirmCallback = onConfirm;
+      document.getElementById("confirm-modal").classList.remove("hidden");
+    }
+
+    function closeConfirmModal() {
+      state.pendingConfirmCallback = null;
+      document.getElementById("confirm-modal").classList.add("hidden");
+    }
+
+    function updateSyncIndicators(mode, detailText) {
+      state.cloudMode = mode;
+      const bootBadge = document.getElementById("cloud-boot-badge");
+      const syncDot = document.getElementById("sync-dot");
+      const syncLabel = document.getElementById("sync-label");
+      const syncPill = document.getElementById("sync-status-pill");
+
+      if (mode === "cloud") {
+        if (bootBadge) {
+          bootBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold";
+          bootBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>Cloud Ready</span>`;
+        }
+        if (syncPill && syncDot && syncLabel) {
+          syncPill.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold";
+          syncDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+          syncLabel.textContent = detailText || "Live Cloud Sync";
+        }
+      } else {
+        if (bootBadge) {
+          bootBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-semibold";
+          bootBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Cloud Required</span>`;
+        }
+        if (syncPill && syncDot && syncLabel) {
+          syncPill.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold";
+          syncDot.className = "w-2 h-2 rounded-full bg-rose-500";
+          syncLabel.textContent = detailText || "Cloud Disconnected";
+        }
+      }
+    }
+
+    function ensureCloudConnected() {
+      if (!state.cloudReady || !state.db || !state.user) {
+        const msg = state.cloudError || "Cloud database is not connected. Verify Firebase config, Auth, and Firestore rules.";
+        showToast(msg, true);
+        return false;
+      }
+      return true;
+    }
+
+    // --- Cloud Firestore Initialization & Real-Time Listeners ---
+    async function initCloudEngine() {
+      state.cloudReady = false;
+      state.cloudMode = "connecting";
+      state.cloudError = "";
+
+      const bootTimeout = setTimeout(() => {
+        if (!state.cloudReady && state.cloudMode === "connecting") {
+          state.cloudError = "Cloud connection timed out. Check network access and Firebase project settings.";
+          updateSyncIndicators("disconnected", "Connection Timeout");
+        }
+      }, 6000);
+
+      try {
+        let rawConfig = typeof __firebase_config !== "undefined" ? __firebase_config : null;
+        if (!rawConfig && typeof window.firebaseConfig !== "undefined") {
+          rawConfig = window.firebaseConfig;
+        }
+
+        const parsedConfig = typeof rawConfig === "string" ? JSON.parse(rawConfig) : rawConfig;
+        const hasValidConfig =
+          parsedConfig &&
+          typeof parsedConfig.apiKey === "string" &&
+          parsedConfig.apiKey.trim() &&
+          !parsedConfig.apiKey.includes("PASTE_YOUR_") &&
+          typeof parsedConfig.projectId === "string" &&
+          parsedConfig.projectId.trim() &&
+          !parsedConfig.projectId.includes("PASTE_YOUR_");
+
+        const firebaseConfig = hasValidConfig ? parsedConfig : null;
+        if (!firebaseConfig) {
+          throw new Error("Missing Firebase config. Fill in window.firebaseConfig to use cloud storage.");
+        }
+
+        const app = initializeApp(firebaseConfig);
+        state.auth = getAuth(app);
+        state.db = getFirestore(app);
+
+        // RULE 3: Authenticate FIRST and await before touching Firestore
+        if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+          await signInWithCustomToken(state.auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(state.auth);
+        }
+
+        state.user = state.auth.currentUser;
+        if (!state.user) {
+          throw new Error("Cloud sign-in failed. Enable Anonymous sign-in in Firebase Authentication.");
+        }
+
+        // RULE 1: Strict /artifacts/{appId}/public/data/{collectionName} paths
+        const configDocRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_config", "main");
+        const buyersColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_buyers");
+        const leadsColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_leads");
+
+        // Seed initial workspace data once if cloud is empty
+        const configSnap = await getDoc(configDocRef);
+        if (!configSnap.exists()) {
+          await setDoc(configDocRef, {
+            ...DEFAULT_CREDENTIALS,
+            initializedAt: Date.now()
+          });
+
+          for (const b of DEFAULT_BUYERS) {
+            await setDoc(doc(buyersColRef, b.id), b);
+          }
+          for (const l of DEFAULT_LEADS) {
+            await setDoc(doc(leadsColRef, l.id), l);
+          }
+        }
+
+        // Real-time listener: Credentials & Settings
+        onSnapshot(
+          configDocRef,
+          (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              state.credentials = {
+                adminEmail: data.adminEmail || DEFAULT_CREDENTIALS.adminEmail,
+                adminPassword: data.adminPassword || DEFAULT_CREDENTIALS.adminPassword,
+                agentEmail: data.agentEmail || DEFAULT_CREDENTIALS.agentEmail,
+                agentPassword: data.agentPassword || DEFAULT_CREDENTIALS.agentPassword
+              };
+              populateSettingsInputs();
+            }
+          },
+          (err) => {
+            console.error("Config snapshot error:", err);
+            state.cloudReady = false;
+            state.cloudError = err.message || "Firestore permission denied on config.";
+            updateSyncIndicators("disconnected", "Cloud Error");
+          }
+        );
+
+        // Real-time listener: Buyers (RULE 2: Simple collection query, sorted in memory)
+        onSnapshot(
+          buyersColRef,
+          (snapshot) => {
+            const list = [];
+            snapshot.forEach((docSnap) => {
+              list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            list.sort((a, b) => (a.order || 999) - (b.order || 999) || String(a.name).localeCompare(String(b.name)));
+            state.buyers = list;
+            renderAll();
+          },
+          (err) => {
+            console.error("Buyers snapshot error:", err);
+            state.cloudReady = false;
+            state.cloudError = err.message || "Firestore permission denied on buyers.";
+            updateSyncIndicators("disconnected", "Cloud Error");
+          }
+        );
+
+        // Real-time listener: Leads (RULE 2: Simple collection query, sorted in memory)
+        onSnapshot(
+          leadsColRef,
+          (snapshot) => {
+            const list = [];
+            snapshot.forEach((docSnap) => {
+              list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            state.leads = list;
+            renderAll();
+          },
+          (err) => {
+            console.error("Leads snapshot error:", err);
+            state.cloudReady = false;
+            state.cloudError = err.message || "Firestore permission denied on leads.";
+            updateSyncIndicators("disconnected", "Cloud Error");
+          }
+        );
+
+        clearTimeout(bootTimeout);
+        state.cloudReady = true;
+        state.cloudError = "";
+        updateSyncIndicators("cloud", "Live Cloud Sync");
+      } catch (err) {
+        clearTimeout(bootTimeout);
+        console.error("Cloud connection failed:", err);
+        state.cloudReady = false;
+        state.buyers = [];
+        state.leads = [];
+        state.cloudError = err?.message || "Unable to connect to cloud database.";
+        updateSyncIndicators("disconnected", "Cloud Required");
+        renderAll();
+      }
+    }
+
+    // --- Cloud-Only Write Helpers ---
+    async function saveLeadToStore(leadObj) {
+      if (!ensureCloudConnected()) {
+        throw new Error(state.cloudError || "Cloud not connected");
+      }
+      const leadsColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_leads");
+      await addDoc(leadsColRef, leadObj);
+    }
+
+    async function updateLeadInStore(docId, patch) {
+      if (!ensureCloudConnected()) {
+        throw new Error(state.cloudError || "Cloud not connected");
+      }
+      const leadRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_leads", docId);
+      await updateDoc(leadRef, patch);
+    }
+
+    async function deleteLeadFromStore(docId) {
+      if (!ensureCloudConnected()) {
+        throw new Error(state.cloudError || "Cloud not connected");
+      }
+      const leadRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_leads", docId);
+      await deleteDoc(leadRef);
+    }
+
+    async function saveBuyerToStore(docId, buyerData) {
+      if (!ensureCloudConnected()) {
+        throw new Error(state.cloudError || "Cloud not connected");
+      }
+      const buyersColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_buyers");
+      if (docId) {
+        await updateDoc(doc(buyersColRef, docId), buyerData);
+      } else {
+        await addDoc(buyersColRef, { ...buyerData, order: state.buyers.length + 1 });
+      }
+    }
+
+    async function deleteBuyerFromStore(docId) {
+      if (!ensureCloudConnected()) {
+        throw new Error(state.cloudError || "Cloud not connected");
+      }
+      const buyerRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_buyers", docId);
+      await deleteDoc(buyerRef);
+    }
+
+    async function saveCredentialsToStore(patch) {
+      if (!ensureCloudConnected()) {
+        throw new Error(state.cloudError || "Cloud not connected");
+      }
+      const updated = { ...state.credentials, ...patch };
+      const configDocRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_config", "main");
+      await setDoc(configDocRef, updated, { merge: true });
+    }
+        if (syncPill && syncDot && syncLabel) {
+          syncPill.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold";
+          syncDot.className = "w-2 h-2 rounded-full bg-amber-500";
+          syncLabel.textContent = detailText || "Session Mode";
+        }
+      }
+    }
+
+    // --- Cloud Firestore Initialization & Real-Time Listeners ---
+    async function initCloudEngine() {
+      // Prevent login UI from ever stalling on "Connecting Cloud..."
+      const bootTimeout = setTimeout(() => {
+        if (!state.cloudReady && state.cloudMode === "connecting") {
+          console.warn("Cloud connection timed out; switching to Session Memory fallback.");
+          updateSyncIndicators("memory", "Session Memory (Timeout)");
+          renderAll();
+        }
+      }, 6000);
+
+      try {
+        // Resolve Firebase config from global variables or __firebase_config
+        let rawConfig = null;
+        if (typeof window.firebaseConfig !== "undefined" && window.firebaseConfig) {
+          rawConfig = window.firebaseConfig;
+        } else if (typeof firebaseConfig !== "undefined" && firebaseConfig) {
+          rawConfig = firebaseConfig;
+        } else if (typeof __firebase_config !== "undefined" && __firebase_config) {
+          rawConfig = __firebase_config;
+        }
+
+        const parsedConfig = typeof rawConfig === "string" ? JSON.parse(rawConfig) : rawConfig;
+        const hasRealApiKey =
+          parsedConfig &&
+          typeof parsedConfig.apiKey === "string" &&
+          parsedConfig.apiKey.trim().length > 10 &&
+          !parsedConfig.apiKey.includes("PASTE_YOUR_");
+        const hasRealProjectId =
+          parsedConfig &&
+          typeof parsedConfig.projectId === "string" &&
+          parsedConfig.projectId.trim().length > 1 &&
+          !parsedConfig.projectId.includes("PASTE_YOUR_");
+
+        const firebaseConfig = hasRealApiKey && hasRealProjectId ? parsedConfig : null;
+
+        if (!firebaseConfig) {
+          throw new Error("Missing apiKey or projectId in window.firebaseConfig.");
+        }
+
+        const app = initializeApp(firebaseConfig);
+        state.auth = getAuth(app);
+        state.db = getFirestore(app);
+
+        // RULE 3: Authenticate FIRST and await before touching Firestore
+        if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+          await signInWithCustomToken(state.auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(state.auth);
+        }
+
+        state.user = state.auth.currentUser;
+        if (!state.user) {
+          throw new Error("Anonymous sign-in returned no user.");
+        }
+
+        // RULE 1: Strict /artifacts/{appId}/public/data/{collectionName} paths
+        const configDocRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_config", "main");
+        const buyersColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_buyers");
+        const leadsColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_leads");
+
+        // Seed initial workspace data once if cloud is empty
+        const configSnap = await getDoc(configDocRef);
+        if (!configSnap.exists()) {
+          await setDoc(configDocRef, {
+            ...DEFAULT_CREDENTIALS,
+            initializedAt: Date.now()
+          });
+
+          for (const b of DEFAULT_BUYERS) {
+            await setDoc(doc(buyersColRef, b.id), b);
+          }
+          for (const l of DEFAULT_LEADS) {
+            await setDoc(doc(leadsColRef, l.id), l);
+          }
+        }
+
+        // Real-time listener: Credentials & Settings
+        onSnapshot(
+          configDocRef,
+          (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              state.credentials = {
+                adminEmail: data.adminEmail || DEFAULT_CREDENTIALS.adminEmail,
+                adminPassword: data.adminPassword || DEFAULT_CREDENTIALS.adminPassword,
+                agentEmail: data.agentEmail || DEFAULT_CREDENTIALS.agentEmail,
+                agentPassword: data.agentPassword || DEFAULT_CREDENTIALS.agentPassword
+              };
+              populateSettingsInputs();
+            }
+          },
+          (err) => {
+            console.error("Config snapshot error:", err);
+            updateSyncIndicators("memory", "Cloud Rules Blocked");
+          }
+        );
+
+        // Real-time listener: Buyers (RULE 2: Simple collection query, sorted in memory)
+        onSnapshot(
+          buyersColRef,
+          (snapshot) => {
+            const list = [];
+            snapshot.forEach((docSnap) => {
+              list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            list.sort((a, b) => (a.order || 999) - (b.order || 999) || String(a.name).localeCompare(String(b.name)));
+            state.buyers = list;
+            renderAll();
+          },
+          (err) => {
+            console.error("Buyers snapshot error:", err);
+            updateSyncIndicators("memory", "Cloud Rules Blocked");
+          }
+        );
+
+        // Real-time listener: Leads (RULE 2: Simple collection query, sorted in memory)
+        onSnapshot(
+          leadsColRef,
+          (snapshot) => {
+            const list = [];
+            snapshot.forEach((docSnap) => {
+              list.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            state.leads = list;
+            renderAll();
+          },
+          (err) => {
+            console.error("Leads snapshot error:", err);
+            updateSyncIndicators("memory", "Cloud Rules Blocked");
+          }
+        );
+
+        clearTimeout(bootTimeout);
+        state.cloudReady = true;
+        updateSyncIndicators("cloud", "Live Cloud Sync");
+      } catch (err) {
+        clearTimeout(bootTimeout);
+        const msg = String(err?.message || err || "");
+        console.warn("Running in resilient in-memory session fallback:", err);
+        state.cloudReady = false;
+
+        let shortReason = "Session Memory";
+        if (msg.includes("Missing apiKey")) {
+          shortReason = "Session (Config Missing)";
+        } else if (msg.includes("auth/")) {
+          shortReason = "Session (Auth Disabled)";
+        } else if (msg.includes("permission-denied") || msg.includes("Missing or insufficient permissions")) {
+          shortReason = "Session (Firestore Rules)";
+        }
+
+        updateSyncIndicators("memory", shortReason);
+        renderAll();
+      }
+    }
+
+    // --- Cloud Write Helpers ---
+    async function saveLeadToStore(leadObj) {
+      if (state.cloudReady && state.db && state.user) {
+        const leadsColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_leads");
+        await addDoc(leadsColRef, leadObj);
+      } else {
+        state.leads.unshift({ id: "local-" + Date.now(), ...leadObj });
+        renderAll();
+      }
+    }
+
+    async function updateLeadInStore(docId, patch) {
+      if (state.cloudReady && state.db && state.user) {
+        const leadRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_leads", docId);
+        await updateDoc(leadRef, patch);
+      } else {
+        const idx = state.leads.findIndex((l) => l.id === docId);
+        if (idx !== -1) {
+          state.leads[idx] = { ...state.leads[idx], ...patch };
+          renderAll();
+        }
+      }
+    }
+
+    async function deleteLeadFromStore(docId) {
+      if (state.cloudReady && state.db && state.user) {
+        const leadRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_leads", docId);
+        await deleteDoc(leadRef);
+      } else {
+        state.leads = state.leads.filter((l) => l.id !== docId);
+        renderAll();
+      }
+    }
+
+    async function saveBuyerToStore(docId, buyerData) {
+      if (state.cloudReady && state.db && state.user) {
+        const buyersColRef = collection(state.db, "artifacts", state.appId, "public", "data", "crm_buyers");
+        if (docId) {
+          await updateDoc(doc(buyersColRef, docId), buyerData);
+        } else {
+          await addDoc(buyersColRef, { ...buyerData, order: state.buyers.length + 1 });
+        }
+      } else {
+        if (docId) {
+          const idx = state.buyers.findIndex((b) => b.id === docId);
+          if (idx !== -1) state.buyers[idx] = { ...state.buyers[idx], ...buyerData };
+        } else {
+          state.buyers.push({ id: "buyer-" + Date.now(), ...buyerData, order: state.buyers.length + 1 });
+        }
+        renderAll();
+      }
+    }
+
+    async function deleteBuyerFromStore(docId) {
+      if (state.cloudReady && state.db && state.user) {
+        const buyerRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_buyers", docId);
+        await deleteDoc(buyerRef);
+      } else {
+        state.buyers = state.buyers.filter((b) => b.id !== docId);
+        renderAll();
+      }
+    }
+
+    async function saveCredentialsToStore(patch) {
+      const updated = { ...state.credentials, ...patch };
+      if (state.cloudReady && state.db && state.user) {
+        const configDocRef = doc(state.db, "artifacts", state.appId, "public", "data", "crm_config", "main");
+        await setDoc(configDocRef, updated, { merge: true });
+      } else {
+        state.credentials = updated;
+        populateSettingsInputs();
+      }
+    }
+
+    // --- Per-Buyer Phone Duplicate Check ---
+    function findDuplicateForBuyer(phoneRaw, buyerId, ignoreLeadDocId = null) {
+      const normalized = normalizePhone(phoneRaw);
+      if (normalized.length < 7 || !buyerId) return null;
+      return (
+        state.leads.find(
+          (l) =>
+            l.id !== ignoreLeadDocId &&
+            l.buyerId === buyerId &&
+            normalizePhone(l.phone) === normalized
+        ) || null
+      );
+    }
+
+    function updateLiveDuplicateFeedback() {
+      const phoneVal = document.getElementById("lead-phone")?.value || "";
+      const buyerId = document.getElementById("lead-buyer-select")?.value || "";
+      const feedback = document.getElementById("buyer-dup-feedback");
+      if (!feedback) return;
+
+      const norm = normalizePhone(phoneVal);
+      if (norm.length < 7) {
+        feedback.className = "text-xs mt-1.5 text-slate-500";
+        feedback.textContent = "Checks phone number uniqueness strictly for the selected buyer.";
+        return;
+      }
+
+      const buyerObj = state.buyers.find((b) => b.id === buyerId);
+      const buyerName = buyerObj ? buyerObj.name : "selected buyer";
+      const dup = findDuplicateForBuyer(phoneVal, buyerId);
+
+      if (dup) {
+        feedback.className = "text-xs mt-1.5 text-rose-600 font-semibold";
+        feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i>Duplicate blocked: ${escapeHtml(phoneVal)} was already sent to ${escapeHtml(buyerName)} (${escapeHtml(dup.leadCode)}). Select another buyer.`;
+      } else {
+        feedback.className = "text-xs mt-1.5 text-emerald-700 font-semibold";
+        feedback.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i>Clear for ${escapeHtml(buyerName)} — no prior submission on this buyer.`;
+      }
+    }
+
+    // --- Rendering Functions ---
+    function getBuyerName(buyerId) {
+      const found = state.buyers.find((b) => b.id === buyerId);
+      return found ? found.name : "Unassigned Buyer";
+    }
+
+    function renderBuyerDropdowns() {
+      const activeBuyers = state.buyers.filter((b) => b.status === "Active");
+
+      // Create Lead Buyer Select (Active buyers only)
+      const intakeSelect = document.getElementById("lead-buyer-select");
+      if (intakeSelect) {
+        const prev = intakeSelect.value;
+        if (activeBuyers.length === 0) {
+          intakeSelect.innerHTML = `<option value="">No Active Buyers Available</option>`;
+        } else {
+          intakeSelect.innerHTML = activeBuyers
+            .map((b) => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`)
+            .join("");
+          if (activeBuyers.some((b) => b.id === prev)) {
+            intakeSelect.value = prev;
+          }
+        }
+      }
+
+      // Edit Modal Buyer Select (All buyers)
+      const editSelect = document.getElementById("edit-buyer-id");
+      if (editSelect) {
+        editSelect.innerHTML = state.buyers
+          .map((b) => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)} (${escapeHtml(b.status)})</option>`)
+          .join("");
+      }
+
+      // Queue Filter Buyer Select
+      const filterSelect = document.getElementById("queue-buyer-filter");
+      if (filterSelect) {
+        const prev = filterSelect.value || "ALL";
+        filterSelect.innerHTML =
+          `<option value="ALL">All Buyers</option>` +
+          state.buyers
+            .map((b) => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`)
+            .join("");
+        filterSelect.value = prev;
+      }
+
+      // Queue Filter Agent Select
+      const agentFilter = document.getElementById("queue-agent-filter");
+      if (agentFilter) {
+        const prev = agentFilter.value || "ALL";
+        const uniqueAgents = [...new Set(state.leads.map((l) => l.agentName).filter(Boolean))].sort();
+        agentFilter.innerHTML =
+          `<option value="ALL">All Agents</option>` +
+          uniqueAgents.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+        agentFilter.value = prev;
+      }
+    }
+
+    function updateSidebarCounters() {
+      const total = state.leads.length;
+      const quoted = state.leads.filter((l) => l.status === "Quoted").length;
+      const rejected = state.leads.filter((l) => l.status === "Rejected").length;
+      const pending = state.leads.filter((l) => l.status === "Pending").length;
+
+      document.getElementById("count-all").textContent = total;
+      document.getElementById("count-quoted").textContent = quoted;
+      document.getElementById("count-rejected").textContent = rejected;
+      document.getElementById("count-pending").textContent = pending;
+      document.getElementById("count-buyers").textContent = state.buyers.length;
+    }
+
+    function renderDashboard() {
+      const total = state.leads.length;
+      const quoted = state.leads.filter((l) => l.status === "Quoted").length;
+      const rejected = state.leads.filter((l) => l.status === "Rejected").length;
+      const pending = state.leads.filter((l) => l.status === "Pending").length;
+      const rate = total > 0 ? Math.round((quoted / total) * 100) : 0;
+
+      document.getElementById("dash-total-leads").textContent = total;
+      document.getElementById("dash-quoted-leads").textContent = quoted;
+      document.getElementById("dash-quote-rate").textContent = `${rate}% quote conversion`;
+      document.getElementById("dash-rejected-leads").textContent = rejected;
+      document.getElementById("dash-pending-leads").textContent = pending;
+
+      const statusBars = document.getElementById("dash-status-bars");
+      if (statusBars) {
+        const rows = [
+          { label: "Quoted Leads", count: quoted, color: "bg-emerald-500" },
+          { label: "Pending Leads", count: pending, color: "bg-amber-500" },
+          { label: "Rejected Leads", count: rejected, color: "bg-rose-500" }
+        ];
+        statusBars.innerHTML = rows
+          .map((r) => {
+            const pct = total > 0 ? Math.round((r.count / total) * 100) : 0;
+            return `
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs font-semibold">
+                  <span class="text-slate-700">${r.label}</span>
+                  <span class="text-slate-900">${r.count} (${pct}%)</span>
+                </div>
+                <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div class="h-full ${r.color} rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      const buyerBars = document.getElementById("dash-buyer-bars");
+      if (buyerBars) {
+        buyerBars.innerHTML = state.buyers
+          .map((b) => {
+            const count = state.leads.filter((l) => l.buyerId === b.id).length;
+            const cap = Number(b.dailyCap) || 50;
+            const pct = Math.min(100, Math.round((count / cap) * 100));
+            return `
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs font-semibold">
+                  <span class="text-slate-800">${escapeHtml(b.name)} <span class="text-[11px] font-normal text-slate-400">(${escapeHtml(b.status)})</span></span>
+                  <span class="text-slate-700">${count} / ${cap} cap</span>
+                </div>
+                <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+    }
+
+    function renderReports() {
+      const buyersTbody = document.getElementById("report-buyers-tbody");
+      if (buyersTbody) {
+        buyersTbody.innerHTML = state.buyers
+          .map((b) => {
+            const bLeads = state.leads.filter((l) => l.buyerId === b.id);
+            const q = bLeads.filter((l) => l.status === "Quoted").length;
+            const r = bLeads.filter((l) => l.status === "Rejected").length;
+            const p = bLeads.filter((l) => l.status === "Pending").length;
+            return `
+              <tr class="hover:bg-slate-50/80">
+                <td class="py-3 px-4 font-bold text-slate-900">${escapeHtml(b.name)}</td>
+                <td class="py-3 px-4">
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                    b.status === "Active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+                  }">${escapeHtml(b.status)}</span>
+                </td>
+                <td class="py-3 px-4 font-semibold">${bLeads.length}</td>
+                <td class="py-3 px-4 font-bold text-emerald-700">${q}</td>
+                <td class="py-3 px-4 font-bold text-rose-700">${r}</td>
+                <td class="py-3 px-4 font-bold text-amber-700">${p}</td>
+                <td class="py-3 px-4 text-slate-600">${escapeHtml(b.dailyCap)} / day</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      const agentsTbody = document.getElementById("report-agents-tbody");
+      if (agentsTbody) {
+        const agentNames = [...new Set(state.leads.map((l) => l.agentName).filter(Boolean))];
+        agentsTbody.innerHTML =
+          agentNames.length === 0
+            ? `<tr><td colspan="6" class="py-6 text-center text-slate-500">No agent records found.</td></tr>`
+            : agentNames
+                .map((agent) => {
+                  const aLeads = state.leads.filter((l) => l.agentName === agent);
+                  const q = aLeads.filter((l) => l.status === "Quoted").length;
+                  const r = aLeads.filter((l) => l.status === "Rejected").length;
+                  const p = aLeads.filter((l) => l.status === "Pending").length;
+                  const rate = aLeads.length > 0 ? Math.round((q / aLeads.length) * 100) : 0;
+                  return `
+                    <tr class="hover:bg-slate-50/80">
+                      <td class="py-3 px-4 font-bold text-slate-900">${escapeHtml(agent)}</td>
+                      <td class="py-3 px-4 font-semibold">${aLeads.length}</td>
+                      <td class="py-3 px-4 font-bold text-emerald-700">${q}</td>
+                      <td class="py-3 px-4 font-bold text-rose-700">${r}</td>
+                      <td class="py-3 px-4 font-bold text-amber-700">${p}</td>
+                      <td class="py-3 px-4 font-semibold text-blue-700">${rate}%</td>
+                    </tr>
+                  `;
+                })
+                .join("");
+      }
+    }
+
+    function renderLeadsQueue() {
+      const tbody = document.getElementById("leads-queue-tbody");
+      if (!tbody) return;
+
+      const statusFilterMap = {
+        "all-leads": "ALL",
+        "quoted-leads": "Quoted",
+        "rejected-leads": "Rejected",
+        "pending-leads": "Pending"
+      };
+
+      const requiredStatus = statusFilterMap[state.activeTab] || "ALL";
+      const query = (document.getElementById("queue-search-input")?.value || "").trim().toLowerCase();
+      const buyerFilter = document.getElementById("queue-buyer-filter")?.value || "ALL";
+      const agentFilter = document.getElementById("queue-agent-filter")?.value || "ALL";
+
+      const filtered = state.leads.filter((l) => {
+        if (requiredStatus !== "ALL" && l.status !== requiredStatus) return false;
+        if (buyerFilter !== "ALL" && l.buyerId !== buyerFilter) return false;
+        if (agentFilter !== "ALL" && l.agentName !== agentFilter) return false;
+        if (query) {
+          const haystack = [
+            l.leadCode,
+            l.firstName,
+            l.lastName,
+            l.phone,
+            l.city,
+            l.state,
+            l.zip,
+            l.agentName,
+            l.makeModels,
+            l.comment,
+            getBuyerName(l.buyerId)
+          ]
+            .join(" ")
+            .toLowerCase();
+          if (!haystack.includes(query)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-10 px-4 text-center text-slate-500">
+              No leads match the current view or filter criteria.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const isAdmin = state.sessionRole === "admin";
+
+      tbody.innerHTML = filtered
+        .map((lead) => {
+          const badgeClass =
+            lead.status === "Quoted"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : lead.status === "Rejected"
+              ? "bg-rose-50 text-rose-700 border-rose-200"
+              : "bg-amber-50 text-amber-700 border-amber-200";
+
+          return `
+            <tr class="hover:bg-blue-50/30 transition">
+              <td class="py-3.5 px-4 align-top">
+                <div class="font-mono font-bold text-blue-700 text-xs">${escapeHtml(lead.leadCode || "HB-LEAD")}</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(lead.housing || "")}</div>
+              </td>
+              <td class="py-3.5 px-4 align-top">
+                <div class="font-bold text-slate-900">${escapeHtml(lead.firstName)} ${escapeHtml(lead.lastName)}</div>
+                <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(lead.vehicles)} veh • ${escapeHtml(lead.makeModels)}</div>
+                <div class="text-[11px] text-slate-400">Ins: ${escapeHtml(lead.insurance)}</div>
+              </td>
+              <td class="py-3.5 px-4 align-top">
+                <div class="font-mono font-semibold text-slate-800">${escapeHtml(lead.phone)}</div>
+                <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(lead.city)}, ${escapeHtml(lead.state)} ${escapeHtml(lead.zip)}</div>
+              </td>
+              <td class="py-3.5 px-4 align-top">
+                <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 text-xs font-semibold">
+                  ${escapeHtml(getBuyerName(lead.buyerId))}
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-top font-medium text-slate-700">
+                ${escapeHtml(lead.agentName)}
+              </td>
+              <td class="py-3.5 px-4 align-top">
+                <span class="px-2.5 py-1 rounded-full border text-xs font-bold ${badgeClass}">
+                  ${escapeHtml(lead.status)}
+                </span>
+                ${
+                  lead.adminOverridden
+                    ? `<div class="text-[10px] font-semibold text-blue-700 mt-1">Admin Overridden</div>`
+                    : ""
+                }
+              </td>
+              <td class="py-3.5 px-4 align-top max-w-xs">
+                <p class="text-xs text-slate-600 line-clamp-2">${escapeHtml(lead.comment)}</p>
+              </td>
+              <td class="py-3.5 px-4 align-top text-right whitespace-nowrap space-x-1.5">
+                <button
+                  type="button"
+                  data-open-lead="${escapeHtml(lead.id)}"
+                  class="open-lead-btn px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 text-xs font-semibold transition cursor-pointer"
+                >
+                  ${isAdmin ? "Audit / Edit" : "View"}
+                </button>
+                ${
+                  isAdmin
+                    ? `<button
+                        type="button"
+                        data-delete-lead="${escapeHtml(lead.id)}"
+                        class="delete-lead-btn px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-semibold transition cursor-pointer"
+                        title="Delete Lead"
+                      >
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>`
+                    : ""
+                }
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    function renderBuyersSection() {
+      const grid = document.getElementById("buyers-cards-grid");
+      if (!grid) return;
+
+      grid.innerHTML = state.buyers
+        .map((buyer) => {
+          const count = state.leads.filter((l) => l.buyerId === buyer.id).length;
+          const isActive = buyer.status === "Active";
+          return `
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between gap-4">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h4 class="text-base font-extrabold text-slate-900">${escapeHtml(buyer.name)}</h4>
+                  <p class="text-xs text-slate-500 mt-0.5">Daily Cap: <strong>${escapeHtml(buyer.dailyCap)}</strong> leads • Sent: <strong>${count}</strong></p>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
+                  isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+                }">
+                  ${escapeHtml(buyer.status)}
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  data-edit-buyer="${escapeHtml(buyer.id)}"
+                  class="edit-buyer-btn px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition cursor-pointer"
+                >
+                  <i class="fa-solid fa-pen mr-1"></i> Edit Name / Cap
+                </button>
+                <button
+                  type="button"
+                  data-delete-buyer="${escapeHtml(buyer.id)}"
+                  class="delete-buyer-btn px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer"
+                >
+                  <i class="fa-solid fa-trash-can mr-1"></i> Remove
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function populateSettingsInputs() {
+      const adminEmailEl = document.getElementById("settings-admin-email");
+      const adminPassEl = document.getElementById("settings-admin-password");
+      const agentEmailEl = document.getElementById("settings-agent-email");
+      const agentPassEl = document.getElementById("settings-agent-password");
+
+      if (adminEmailEl) adminEmailEl.value = state.credentials.adminEmail;
+      if (adminPassEl) adminPassEl.value = state.credentials.adminPassword;
+      if (agentEmailEl) agentEmailEl.value = state.credentials.agentEmail;
+      if (agentPassEl) agentPassEl.value = state.credentials.agentPassword;
+    }
+
+    function renderAll() {
+      renderBuyerDropdowns();
+      updateSidebarCounters();
+      renderDashboard();
+      renderReports();
+      renderLeadsQueue();
+      renderBuyersSection();
+      populateSettingsInputs();
+      updateLiveDuplicateFeedback();
+    }
+
+    // --- Navigation & Role Enforcement ---
+    const TAB_META = {
+      "create-lead": {
+        title: "1- Create Lead",
+        subtitle: "Submit prospect details with real-time per-buyer duplicate verification"
+      },
+      dashboard: {
+        title: "2- Dashboard",
+        subtitle: "Live operational counts and buyer cap utilization"
+      },
+      reports: {
+        title: "3- Reports",
+        subtitle: "Buyer and agent conversion analytics and CSV export"
+      },
+      "all-leads": {
+        title: "4- All Leads",
+        subtitle: "Complete searchable database across all buyers and statuses"
+      },
+      "quoted-leads": {
+        title: "5- Quoted Leads",
+        subtitle: "Approved and quoted prospect records"
+      },
+      "rejected-leads": {
+        title: "6- Rejected Leads",
+        subtitle: "Rejected submissions — Admins can audit and override false rejections"
+      },
+      "pending-leads": {
+        title: "7- Pending Leads",
+        subtitle: "Leads currently awaiting disposition confirmation"
+      },
+      "buyers-section": {
+        title: "Buyers Section",
+        subtitle: "Add, rename, pause, or remove target buyers across all devices"
+      },
+      "users-settings": {
+        title: "Users & Settings",
+        subtitle: "Manage Administrator and Agent login credentials"
+      }
+    };
+
+    function switchTab(tabId) {
+      const isAdmin = state.sessionRole === "admin";
+      if (!isAdmin && (tabId === "buyers-section" || tabId === "users-settings")) {
+        showToast("Administrator access required for that section.", true);
+        return;
+      }
+
+      state.activeTab = tabId;
+
+      // Update sidebar button styles
+      document.querySelectorAll(".nav-tab-btn").forEach((btn) => {
+        const active = btn.getAttribute("data-tab") === tabId;
+        btn.className = active
+          ? "nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 text-white shadow-sm transition cursor-pointer"
+          : "nav-tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-blue-100 hover:bg-blue-800/60 transition cursor-pointer";
+      });
+
+      // Toggle views
+      document.querySelectorAll(".crm-view").forEach((v) => v.classList.add("hidden"));
+
+      if (["all-leads", "quoted-leads", "rejected-leads", "pending-leads"].includes(tabId)) {
+        document.getElementById("view-leads-queue").classList.remove("hidden");
+        renderLeadsQueue();
+      } else {
+        const target = document.getElementById("view-" + tabId);
+        if (target) target.classList.remove("hidden");
+      }
+
+      const meta = TAB_META[tabId] || { title: "HOTLINE BPO", subtitle: "" };
+      document.getElementById("topbar-title").textContent = meta.title;
+      document.getElementById("topbar-subtitle").textContent = meta.subtitle;
+
+      // Close mobile sidebar if open
+      document.getElementById("crm-sidebar").classList.add("-translate-x-full");
+      document.getElementById("sidebar-backdrop").classList.add("hidden");
+    }
+
+    function applySessionRole(role, email) {
+      state.sessionRole = role;
+      state.sessionEmail = email;
+
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("crm-app").classList.remove("hidden");
+
+      document.getElementById("session-user-email").textContent = email;
+      const roleBadge = document.getElementById("session-role-badge");
+      const adminGroup = document.getElementById("admin-sidebar-group");
+
+      if (role === "admin") {
+        roleBadge.textContent = "Administrator";
+        roleBadge.className = "inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-600 text-white";
+        adminGroup.classList.remove("hidden");
+      } else {
+        roleBadge.textContent = "Agent (Restricted)";
+        roleBadge.className = "inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-700 text-slate-200";
+        adminGroup.classList.add("hidden");
+      }
+
+      switchTab("create-lead");
+      renderAll();
+    }
+
+    // --- Open Lead Modal ---
+    function openLeadModal(leadDocId) {
+      const lead = state.leads.find((l) => l.id === leadDocId);
+      if (!lead) return;
+
+      const isAdmin = state.sessionRole === "admin";
+      document.getElementById("edit-lead-doc-id").value = lead.id;
+      document.getElementById("modal-lead-id").textContent = lead.leadCode || "HB-LEAD";
+      document.getElementById("modal-lead-status-badge").textContent = lead.status;
+      document.getElementById("modal-lead-title").textContent = `${lead.firstName} ${lead.lastName}`;
+
+      document.getElementById("edit-first-name").value = lead.firstName || "";
+      document.getElementById("edit-last-name").value = lead.lastName || "";
+      document.getElementById("edit-dob").value = lead.dob || "";
+      document.getElementById("edit-address").value = lead.address || "";
+      document.getElementById("edit-city").value = lead.city || "";
+      document.getElementById("edit-state").value = lead.state || "";
+      document.getElementById("edit-zip").value = lead.zip || "";
+      document.getElementById("edit-phone").value = lead.phone || "";
+      document.getElementById("edit-vehicles").value = lead.vehicles || 1;
+      document.getElementById("edit-make-models").value = lead.makeModels || "";
+      document.getElementById("edit-housing").value = lead.housing || "Homeowner";
+      document.getElementById("edit-insurance").value = lead.insurance || "";
+      document.getElementById("edit-agent-name").value = lead.agentName || "";
+      document.getElementById("edit-buyer-id").value = lead.buyerId || "";
+      document.getElementById("edit-status").value = lead.status || "Pending";
+      document.getElementById("edit-comment").value = lead.comment || "";
+
+      const overrideBadge = document.getElementById("edit-override-badge");
+      const auditNote = document.getElementById("edit-audit-note");
+      if (lead.adminOverridden) {
+        overrideBadge.classList.remove("hidden");
+        auditNote.textContent = lead.overrideNote || "Updated by Administrator.";
+      } else {
+        overrideBadge.classList.add("hidden");
+        auditNote.textContent = isAdmin
+          ? "As Admin, changing status or comment here updates all devices immediately."
+          : "Read-only view. Contact Administrator for status or comment overrides.";
+      }
+
+      // Toggle read-only vs editable fields for Agent vs Admin
+      const formElements = document.querySelectorAll("#lead-edit-form input, #lead-edit-form select, #lead-edit-form textarea");
+      formElements.forEach((el) => {
+        if (el.type !== "hidden") {
+          el.disabled = !isAdmin;
+        }
+      });
+
+      document.querySelectorAll(".admin-only-el").forEach((el) => {
+        el.classList.toggle("hidden", !isAdmin);
+      });
+
+      document.getElementById("lead-modal").classList.remove("hidden");
+    }
+
+    function closeLeadModal() {
+      document.getElementById("lead-modal").classList.add("hidden");
+    }
+
+    // --- CSV Export ---
+    function exportLeadsCsv() {
+      const headers = [
+        "Lead ID",
+        "First Name",
+        "Last Name",
+        "DOB",
+        "Address",
+        "City",
+        "State",
+        "Zip",
+        "Phone",
+        "Vehicles",
+        "Make & Models",
+        "Housing",
+        "Current Insurance",
+        "Agent Name",
+        "Buyer",
+        "Status",
+        "Comment"
+      ];
+
+      const rows = state.leads.map((l) => [
+        l.leadCode,
+        l.firstName,
+        l.lastName,
+        l.dob,
+        l.address,
+        l.city,
+        l.state,
+        l.zip,
+        l.phone,
+        l.vehicles,
+        l.makeModels,
+        l.housing,
+        l.insurance,
+        l.agentName,
+        getBuyerName(l.buyerId),
+        l.status,
+        l.comment
+      ]);
+
+      const csvContent =
+        [headers, ...rows]
+          .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+          .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hotline-bpo-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("CSV report exported.");
+    }
+
+    // --- Event Listeners Setup ---
+    function bindEvents() {
+      // Login form
+      document.getElementById("login-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("login-email").value.trim().toLowerCase();
+        const pass = document.getElementById("login-password").value;
+        const errBox = document.getElementById("login-error-box");
+
+        if (!state.cloudReady || !state.user) {
+          errBox.textContent =
+            state.cloudError ||
+            "Cloud database is not connected. Configure Firebase, enable Anonymous Auth, and refresh.";
+          errBox.classList.remove("hidden");
+          return;
+        }
+
+        const activeAdminEmail = (state.credentials.adminEmail || DEFAULT_CREDENTIALS.adminEmail).trim().toLowerCase();
+        const activeAdminPass = state.credentials.adminPassword || DEFAULT_CREDENTIALS.adminPassword;
+        const activeAgentEmail = (state.credentials.agentEmail || DEFAULT_CREDENTIALS.agentEmail).trim().toLowerCase();
+        const activeAgentPass = state.credentials.agentPassword || DEFAULT_CREDENTIALS.agentPassword;
+
+        if (email === activeAdminEmail && pass === activeAdminPass) {
+          errBox.classList.add("hidden");
+          applySessionRole("admin", state.credentials.adminEmail.trim());
+        } else if (email === activeAgentEmail && pass === activeAgentPass) {
+          errBox.classList.add("hidden");
+          applySessionRole("agent", state.credentials.agentEmail.trim());
+        } else {
+          errBox.textContent = "Invalid email or password. Please verify your access credentials.";
+          errBox.classList.remove("hidden");
+        }
+      });
+
+      document.getElementById("toggle-password-visibility").addEventListener("click", () => {
+        const inp = document.getElementById("login-password");
+        inp.type = inp.type === "password" ? "text" : "password";
+      });
+
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        state.sessionRole = null;
+        state.sessionEmail = null;
+        document.getElementById("login-password").value = "";
+        document.getElementById("crm-app").classList.add("hidden");
+        document.getElementById("login-screen").classList.remove("hidden");
+      });
+
+      // Sidebar navigation
+      document.querySelectorAll(".nav-tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          switchTab(btn.getAttribute("data-tab"));
+        });
+      });
+
+      document.getElementById("quick-create-lead-btn").addEventListener("click", () => {
+        switchTab("create-lead");
+      });
+
+      document.getElementById("open-sidebar-btn").addEventListener("click", () => {
+        document.getElementById("crm-sidebar").classList.remove("-translate-x-full");
+        document.getElementById("sidebar-backdrop").classList.remove("hidden");
+      });
+
+      document.getElementById("close-sidebar-btn").addEventListener("click", () => {
+        document.getElementById("crm-sidebar").classList.add("-translate-x-full");
+        document.getElementById("sidebar-backdrop").classList.add("hidden");
+      });
+
+      document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+        document.getElementById("crm-sidebar").classList.add("-translate-x-full");
+        document.getElementById("sidebar-backdrop").classList.add("hidden");
+      });
+
+      // Mutually exclusive Homeowner / Renter checkboxes
+      document.querySelectorAll(".housing-checkbox").forEach((chk) => {
+        chk.addEventListener("change", () => {
+          if (chk.checked) {
+            document.querySelectorAll(".housing-checkbox").forEach((other) => {
+              if (other !== chk) other.checked = false;
+            });
+          }
+        });
+      });
+
+      // Live duplicate check on phone & buyer inputs
+      document.getElementById("lead-phone").addEventListener("input", updateLiveDuplicateFeedback);
+      document.getElementById("lead-buyer-select").addEventListener("change", updateLiveDuplicateFeedback);
+
+      // Create Lead Form Submit
+      document.getElementById("create-lead-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const homeownerChecked = document.getElementById("chk-homeowner").checked;
+        const renterChecked = document.getElementById("chk-renter").checked;
+        if (!homeownerChecked && !renterChecked) {
+          showToast("Please check either Homeowner or Renter.", true);
+          return;
+        }
+
+        const buyerId = document.getElementById("lead-buyer-select").value;
+        if (!buyerId) {
+          showToast("Please select an active buyer.", true);
+          return;
+        }
+
+        const phone = document.getElementById("lead-phone").value.trim();
+        const duplicate = findDuplicateForBuyer(phone, buyerId);
+        if (duplicate) {
+          showToast(
+            `Duplicate blocked: ${phone} was already sent to ${getBuyerName(buyerId)} (${duplicate.leadCode}).`,
+            true
+          );
+          return;
+        }
+
+        const nextNum = 1001 + state.leads.length;
+        const newLead = {
+          leadCode: `HB-${nextNum}`,
+          firstName: document.getElementById("lead-first-name").value.trim(),
+          lastName: document.getElementById("lead-last-name").value.trim(),
+          dob: document.getElementById("lead-dob").value,
+          address: document.getElementById("lead-address").value.trim(),
+          zip: document.getElementById("lead-zip").value.trim(),
+          city: document.getElementById("lead-city").value.trim(),
+          state: document.getElementById("lead-state").value.trim().toUpperCase(),
+          phone,
+          vehicles: Number(document.getElementById("lead-vehicles").value) || 1,
+          makeModels: document.getElementById("lead-make-models").value.trim(),
+          housing: homeownerChecked ? "Homeowner" : "Renter",
+          insurance: document.getElementById("lead-insurance").value.trim(),
+          agentName: document.getElementById("lead-agent-name").value.trim(),
+          buyerId,
+          status: document.getElementById("lead-status-select").value,
+          comment: document.getElementById("lead-comment").value.trim(),
+          adminOverridden: false,
+          overrideNote: "",
+          createdAt: Date.now()
+        };
+
+        try {
+          await saveLeadToStore(newLead);
+          e.target.reset();
+          updateLiveDuplicateFeedback();
+          showToast(`Lead ${newLead.leadCode} saved and synced to cloud.`);
+        } catch (err) {
+          console.error(err);
+          showToast("Failed to save lead to cloud.", true);
+        }
+      });
+
+      // Queue filters
+      document.getElementById("queue-search-input").addEventListener("input", renderLeadsQueue);
+      document.getElementById("queue-buyer-filter").addEventListener("change", renderLeadsQueue);
+      document.getElementById("queue-agent-filter").addEventListener("change", renderLeadsQueue);
+
+      // Delegated actions in Lead Queue & Buyers Section
+      document.addEventListener("click", (e) => {
+        const openBtn = e.target.closest(".open-lead-btn");
+        if (openBtn) {
+          openLeadModal(openBtn.getAttribute("data-open-lead"));
+          return;
+        }
+
+        const delLeadBtn = e.target.closest(".delete-lead-btn");
+        if (delLeadBtn && state.sessionRole === "admin") {
+          const docId = delLeadBtn.getAttribute("data-delete-lead");
+          const lead = state.leads.find((l) => l.id === docId);
+          openConfirmModal(
+            "Delete Lead Record",
+            `Are you sure you want to permanently delete ${lead ? lead.leadCode : "this lead"} across all devices?`,
+            async () => {
+              await deleteLeadFromStore(docId);
+              showToast("Lead deleted across all devices.");
+            }
+          );
+          return;
+        }
+
+        const editBuyerBtn = e.target.closest(".edit-buyer-btn");
+        if (editBuyerBtn && state.sessionRole === "admin") {
+          const docId = editBuyerBtn.getAttribute("data-edit-buyer");
+          const buyer = state.buyers.find((b) => b.id === docId);
+          if (buyer) {
+            document.getElementById("buyer-form-heading").textContent = `Edit ${buyer.name}`;
+            document.getElementById("buyer-edit-doc-id").value = buyer.id;
+            document.getElementById("buyer-name-input").value = buyer.name;
+            document.getElementById("buyer-cap-input").value = buyer.dailyCap;
+            document.getElementById("buyer-status-input").value = buyer.status;
+            document.getElementById("cancel-buyer-edit-btn").classList.remove("hidden");
+          }
+          return;
+        }
+
+        const delBuyerBtn = e.target.closest(".delete-buyer-btn");
+        if (delBuyerBtn && state.sessionRole === "admin") {
+          const docId = delBuyerBtn.getAttribute("data-delete-buyer");
+          const buyer = state.buyers.find((b) => b.id === docId);
+          openConfirmModal(
+            "Remove Buyer",
+            `Remove "${buyer ? buyer.name : "this buyer"}" from the routing list across all devices?`,
+            async () => {
+              await deleteBuyerFromStore(docId);
+              showToast("Buyer removed across all devices.");
+            }
+          );
+        }
+      });
+
+      // Lead Modal Save / Delete / Close
+      document.getElementById("close-lead-modal-btn").addEventListener("click", closeLeadModal);
+      document.getElementById("cancel-lead-modal-btn").addEventListener("click", closeLeadModal);
+
+      document.getElementById("modal-delete-lead-btn").addEventListener("click", () => {
+        if (state.sessionRole !== "admin") return;
+        const docId = document.getElementById("edit-lead-doc-id").value;
+        const lead = state.leads.find((l) => l.id === docId);
+        openConfirmModal(
+          "Delete Lead Record",
+          `Permanently delete ${lead ? lead.leadCode : "this lead"} across all devices?`,
+          async () => {
+            await deleteLeadFromStore(docId);
+            closeLeadModal();
+            showToast("Lead deleted across all devices.");
+          }
+        );
+      });
+
+      document.getElementById("lead-edit-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (state.sessionRole !== "admin") return;
+
+        const docId = document.getElementById("edit-lead-doc-id").value;
+        const existing = state.leads.find((l) => l.id === docId);
+        if (!existing) return;
+
+        const newBuyerId = document.getElementById("edit-buyer-id").value;
+        const newPhone = document.getElementById("edit-phone").value.trim();
+        const dup = findDuplicateForBuyer(newPhone, newBuyerId, docId);
+        if (dup) {
+          showToast(`Duplicate blocked: ${newPhone} already exists on ${getBuyerName(newBuyerId)}.`, true);
+          return;
+        }
+
+        const newStatus = document.getElementById("edit-status").value;
+        const newComment = document.getElementById("edit-comment").value.trim();
+        const statusOrCommentChanged = existing.status !== newStatus || existing.comment !== newComment;
+
+        await updateLeadInStore(docId, {
+          firstName: document.getElementById("edit-first-name").value.trim(),
+          lastName: document.getElementById("edit-last-name").value.trim(),
+          dob: document.getElementById("edit-dob").value,
+          address: document.getElementById("edit-address").value.trim(),
+          city: document.getElementById("edit-city").value.trim(),
+          state: document.getElementById("edit-state").value.trim().toUpperCase(),
+          zip: document.getElementById("edit-zip").value.trim(),
+          phone: newPhone,
+          vehicles: Number(document.getElementById("edit-vehicles").value) || 1,
+          makeModels: document.getElementById("edit-make-models").value.trim(),
+          housing: document.getElementById("edit-housing").value,
+          insurance: document.getElementById("edit-insurance").value.trim(),
+          agentName: document.getElementById("edit-agent-name").value.trim(),
+          buyerId: newBuyerId,
+          status: newStatus,
+          comment: newComment,
+          adminOverridden: existing.adminOverridden || statusOrCommentChanged,
+          overrideNote: statusOrCommentChanged
+            ? `Admin override (${newStatus}) on ${new Date().toLocaleString()}`
+            : existing.overrideNote || ""
+        });
+
+        closeLeadModal();
+        showToast("Lead updated and synced across all devices.");
+      });
+
+      // Confirm Modal buttons
+      document.getElementById("confirm-cancel-btn").addEventListener("click", closeConfirmModal);
+      document.getElementById("confirm-ok-btn").addEventListener("click", async () => {
+        const cb = state.pendingConfirmCallback;
+        closeConfirmModal();
+        if (typeof cb === "function") await cb();
+      });
+
+      // Buyer Form Submit & Cancel
+      document.getElementById("buyer-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (state.sessionRole !== "admin") return;
+
+        const docId = document.getElementById("buyer-edit-doc-id").value;
+        const name = document.getElementById("buyer-name-input").value.trim();
+        const dailyCap = Number(document.getElementById("buyer-cap-input").value) || 50;
+        const status = document.getElementById("buyer-status-input").value;
+
+        await saveBuyerToStore(docId || null, { name, dailyCap, status });
+
+        document.getElementById("buyer-form").reset();
+        document.getElementById("buyer-edit-doc-id").value = "";
+        document.getElementById("buyer-form-heading").textContent = "Add New Buyer";
+        document.getElementById("cancel-buyer-edit-btn").classList.add("hidden");
+        showToast(`Buyer "${name}" saved across all devices.`);
+      });
+
+      document.getElementById("cancel-buyer-edit-btn").addEventListener("click", () => {
+        document.getElementById("buyer-form").reset();
+        document.getElementById("buyer-edit-doc-id").value = "";
+        document.getElementById("buyer-form-heading").textContent = "Add New Buyer";
+        document.getElementById("cancel-buyer-edit-btn").classList.add("hidden");
+      });
+
+      // Admin & Agent Credential Updates
+      document.getElementById("admin-cred-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (state.sessionRole !== "admin") return;
+        const adminEmail = document.getElementById("settings-admin-email").value.trim();
+        const adminPassword = document.getElementById("settings-admin-password").value;
+        await saveCredentialsToStore({ adminEmail, adminPassword });
+        showToast("Admin login credentials updated across all devices.");
+      });
+
+      document.getElementById("agent-cred-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (state.sessionRole !== "admin") return;
+        const agentEmail = document.getElementById("settings-agent-email").value.trim();
+        const agentPassword = document.getElementById("settings-agent-password").value;
+        await saveCredentialsToStore({ agentEmail, agentPassword });
+        showToast("Agent login credentials updated across all devices.");
+      });
+
+      // CSV & JSON Exports
+      document.getElementById("export-csv-btn").addEventListener("click", exportLeadsCsv);
+
+      document.getElementById("download-json-btn").addEventListener("click", () => {
+        const payload = JSON.stringify(
+          {
+            exportedAt: new Date().toISOString(),
+            buyers: state.buyers,
+            leads: state.leads
+          },
+          null,
+          2
+        );
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `hotline-bpo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast("JSON snapshot downloaded.");
+      });
+    }
+
+    // Boot Application
+    bindEvents();
+    renderAll();
+    initCloudEngine();
+  </script>
+</body>
+</html>
